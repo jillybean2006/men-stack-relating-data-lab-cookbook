@@ -1,7 +1,5 @@
 
 
-const isSighnedIn = require('./middleware/is-signed-in');
-const passUserToView = require('./middleware/pass-user-to-view');
 
 
 const dotenv = require('dotenv');
@@ -13,36 +11,28 @@ const methodOverride = require('method-override');
 const morgan = require('morgan');
 const session = require('express-session');
 
+const isSighnedIn = require('./middleware/is-signed-in');
+const passUserToView = require('./middleware/pass-user-to-view');
+
+
 
 const usersController = require('./controllers/users');
-const foodsRouter = require('./controllers/foods');
-const user = require('./models/user.js');
+const foodsController = require('./controllers/foods');
+const authController = require('./controllers/auth')
 
-const usersRouter = require('./routes/users');
 
 
 const port = process.env.PORT ? process.env.PORT : '3000';
 
 app.use(express.urlencoded({ extended: false }));
 app.use(methodOverride('_method'));
-
+app.use(morgan('dev'));
 mongoose.connect(process.env.MONGODB_URI);
 
 
 mongoose.connection.on('connected', () => {
   console.log(`Connected to MongoDB ${mongoose.connection.name}.`);
 });
-
-app.use(passUserToView);
-app.use('/auth', authController);
-app.use(isSighnedIn);
-
-
-
-app.use('/foods', foodsRouter);
-
-app.use('/users/:userId/foods', foodsController);
-
 
 app.use(
   session({
@@ -52,14 +42,29 @@ app.use(
   })
 );
 
-app.use('/auth', authController);
-app.use('users/:userId/foods', foodsController);
 
-app.get('/', (req, res) => {
-  res.render('index.ejs', {
-    user: req.session.user,
-  });
-});
+
+
+app.use(passUserToView);
+app.use('/auth', authController);
+app.use(isSighnedIn);
+
+app.use('/users',usersController)
+app.use('/users/:userId/foods',foodsController)
+
+
+
+app.get('/', async(req, res) => {
+  const User = require('./models/user')
+try {
+  const users = await User.find({})
+ res.render('index.ejs', {
+  users });
+}catch(error){
+  console.log(error)
+  res.render('index.ejs',{users:[]})
+}});
+
 
 app.get('/vip-lounge', (req, res) => {
   if (req.session.user) {

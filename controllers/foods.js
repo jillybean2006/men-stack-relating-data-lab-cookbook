@@ -1,7 +1,7 @@
 
 
 const express = require('express');
-const router = express.Router();
+const router = express.Router({mergeParams:true});
 
 const User = require('../models/user.js');
 
@@ -9,98 +9,48 @@ const User = require('../models/user.js');
 
 
 router.get('/', async function(req, res) {
-    const user = await User.findById(req.user._id);
-    res.render('foods/index', { foods: user.pantry });
+    const user = await User.findById(req.params.userId);
+    console.log(user)
+    res.render('foods/index.ejs', {user});
 });
 
 router.get('/new', function(req, res) {
-    res.render('foods/new');
+    res.render('foods/new.ejs',{userId:req.params.userId});
 });
-
-router.get('/', (req, res) => {
-  res.render('foods/index.ejs');
-});
-
 
 
 router.post('/', async function(req, res) {
-    const user = await User.findById(req.user._id);
-    user.pantry.push(req.body);
-    await user.save();
-    res.redirect('/foods');
-});
-
-router.get('/users/:userId/foods/new', (req, res) => {
-  res.render('foods/new', { userId: req.params.userId });
-});
-
-
-
-router.post('/users/:userId/foods', async (req, res) => {
-  try {
     const user = await User.findById(req.params.userId);
     user.pantry.push(req.body);
     await user.save();
-
-    res.locals.user = user;
-    res.locals.pantry = user.pantry;
-
-    res.render('foods/index');
-  } catch (error) {
-    console.log(error);
-    res.redirect('/');
-  }     
+  
 });
 
-const foodController = require('../controllers/foods.js');
 
-router.delete('/:id', deleteFood);
+router.delete('/:id', async function(req, res) {
+  const user= await User.findById(req.params.userId)
+  user.pantry.id(req.params.id).deleteOne()
+ await user.save()
+res.redirect(`/users/${req.params.userId}/foods`);
+})
 
 
 
- function deleteFood(req, res) {
-  Food.findByIdAndDelete(req.params.id)
-  res.redirect('/foods');
-}
 
-async function index(req, res) {
-  try {
-    const user = await User.findById(req.session.user._id);
-    res.render('foods/index', { foods: user.pantry });
-  } catch (error) {
-    console.log(error);
-    res.redirect('/');
-  }
-}
-
-async function show(req, res) {
+router.get('/:itemId/edit', async function (req, res) {
   try {
     const user = await User.findById(req.session.user._id);
     const food = user.pantry.id(req.params.itemId);
-    res.render('foods/show', { user, food });
+    res.render('foods/edit.ejs', { user, food });
   } catch (error) {
     console.log(error);
     res.redirect('/');
   }
-}
+})
 
-
-
-async function edit(req, res) {
+router.put('/:foodId', async function (req, res) {
   try {
-    const user = await User.findById(req.session.user._id);
-    const food = user.pantry.id(req.params.itemId);
-    res.render('foods/edit', { user, food });
-  } catch (error) {
-    console.log(error);
-    res.redirect('/');
-  }
-}
-
-
-async function updateFood(req, res) {
-  try {
-    const user = await User.findById(req.session.user._id);
+    const user = await User.findById(req.params.userId);
     const food = user.pantry.id(req.params.foodId);
     food.name = req.body.name;
     food.quantity = req.body.quantity;
@@ -110,21 +60,7 @@ async function updateFood(req, res) {
     console.log(error);
     res.redirect('/');
   }
-}
-
-async function create(req, res) {
-  try {
-    await Food.create(req.body);
-    res.redirect('/foods');
-  } catch (error) {
-    console.log(error);
-    res.redirect('/foods/new');
-  }
-}
+})
 
 
-    
-
-module.exports = {
-  index, show, create, deleteFood, edit, updateFood 
-}
+module.exports = router

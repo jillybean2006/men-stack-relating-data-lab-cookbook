@@ -5,6 +5,7 @@ const foodSchema = new mongoose.Schema({
     type: String,
     required: true,
   },
+  quantity: Number
 }, { timestamps: true });
 
 const userSchema = new mongoose.Schema({
@@ -16,7 +17,7 @@ const userSchema = new mongoose.Schema({
     type: String,
     required: true,
   },
-  pantryItem: [foodSchema],
+  pantry: [foodSchema],
 }, { timestamps: true });
 
 module.exports = mongoose.model('User', userSchema);
